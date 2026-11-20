@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: damora-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-damora}
+      POSTGRES_USER: ${DB_USERNAME:-damora}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?isi DB_PASSWORD di .env}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - damora_pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: damora-redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?isi REDIS_PASSWORD di .env}", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - damora_redis:/data
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  damora_pgdata:
+  damora_redis:

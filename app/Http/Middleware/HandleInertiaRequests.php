@@ -1,0 +1,69 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Illuminate\Http\Request;
+use Inertia\Middleware;
+
+class HandleInertiaRequests extends Middleware
+{
+    /**
+     * The root template that's loaded on the first page visit.
+     *
+     * @see https://inertiajs.com/server-side-setup#root-template
+     *
+     * @var string
+     */
+    protected $rootView = 'app';
+
+    /**
+     * Determines the current asset version.
+     *
+     * @see https://inertiajs.com/asset-versioning
+     */
+    public function version(Request $request): ?string
+    {
+        return parent::version($request);
+    }
+
+    /**
+     * Define the props that are shared by default.
+     *
+     * @see https://inertiajs.com/shared-data
+     *
+     * @return array<string, mixed>
+     */
+    // public function share(Request $request): array
+    // {
+    //     return [
+    //         ...parent::share($request),
+    //         //
+    //     ];
+    // }
+
+    public function share(Request $request): array
+    {
+        return [
+            ...parent::share($request),
+
+            // Hanya yang dibutuhkan tampilan. Tidak ada kolom sensitif.
+            'auth' => fn () => $request->user()
+                ? [
+                    'user' => [
+                        'id' => $request->user()->id,
+                        'email' => $request->user()->email,
+                        'role' => $request->user()->role->value,
+                        'is_owner' => $request->user()->isOwner(),
+                        'company' => ['name' => $request->user()->loadMissing('company')->company->name],
+                    ],
+                ]
+                : ['user' => null],
+
+            // Pesan singkat setelah tindakan: with('success', '...') atau with('error', '...')
+            'flash' => fn () => [
+                'success' => $request->session()->get('success'),
+                'error' => $request->session()->get('error'),
+            ],
+        ];
+    }
+}
